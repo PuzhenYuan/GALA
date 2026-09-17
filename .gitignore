@@ -1,0 +1,25 @@
+# Local checkpoints, results, credentials, and verification data are never published.
+.local/
+checkpoints/
+outputs/
+dev/
+third_party/
+.cache/
+.env
+.env.*
+*.safetensors
+*.ckpt
+*.pt
+*.pth
+*.bin
+*.npz
+*.npy
+*.log
+*.mp4
+*.egg-info/
+__pycache__/
+*.py[cod]
+._*
+.DS_Store
+build/
+dist/

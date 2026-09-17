@@ -1,0 +1,15 @@
+diff --git a/robocasa/models/objects/kitchen_object_utils.py b/robocasa/models/objects/kitchen_object_utils.py
+index aad294c..2d68f45 100644
+--- a/robocasa/models/objects/kitchen_object_utils.py
++++ b/robocasa/models/objects/kitchen_object_utils.py
+@@ -484,6 +484,10 @@ def sample_kitchen_object_helper(
+                     reg_choices = reg_choices[:split_th]
+                 elif split == "B":
+                     reg_choices = reg_choices[split_th:]
++                    if "assets/objects/sketchfab/basket/" in reg_choices[0]:
++                        reg_choices = [
++                            c for c in reg_choices if not c.endswith("basket_4/model.xml")
++                        ]
+                 else:
+                     raise ValueError
+             choices[reg] = reg_choices

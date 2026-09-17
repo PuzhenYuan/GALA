@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gala-inference"
+version = "0.1.0"
+description = "GALA policy inference and GR1 simulation evaluation"
+readme = "README.md"
+requires-python = ">=3.10,<3.11"
+dynamic = ["dependencies"]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+
+[tool.setuptools.packages.find]
+include = ["gala*"]
