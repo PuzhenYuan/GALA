@@ -287,162 +287,30 @@ class GALABase(PreTrainedModel):
         return backbone_inputs, action_inputs
 
     @classmethod
-    def from_pretrained(cls, pretrained_model_name_or_path: str, resume_pretrained_option: str="all", **kwargs):
-        if resume_pretrained_option != "all":
-            raise ValueError("Inference requires loading all checkpoint weights")
-        from gala.checkpoint import load_config
-        model_config = load_config(pretrained_model_name_or_path)
-        bridge_cfg_overrides = kwargs.pop("bridge_cfg_overrides", None)
-        if bridge_cfg_overrides is not None:
-            model_config.bridge_cfg = bridge_cfg_overrides
-
-        tune_visual = kwargs.pop("tune_visual", model_config.backbone_cfg['tune_visual'])
-        tune_llm = kwargs.pop("tune_llm", model_config.backbone_cfg['tune_llm'])
-        tune_bridge_embedding = kwargs.pop("tune_bridge_embedding", model_config.backbone_cfg['tune_bridge_embedding'])
-        tokenizer_len = kwargs.pop("tokenizer_len", None)
-        tune_projector = kwargs.pop("tune_projector", model_config.action_head_cfg['tune_projector'])
-        tune_diffusion_model = kwargs.pop("tune_diffusion_model", model_config.action_head_cfg['tune_diffusion_model'])
-
-        print(f"Loading pretrained dual brain from {pretrained_model_name_or_path}")
-        print(f"Tune backbone vision tower: {tune_visual}")
-        print(f"Tune backbone LLM: {tune_llm}")
-        print(f"Tune backbone bridge embedding: {tune_bridge_embedding}")
-        print(f"Tune action head projector: {tune_projector}")
-        print(f"Tune action head DiT: {tune_diffusion_model}")
-
-        try:
-            bridge_type = kwargs.pop("bridge_type", model_config.bridge_cfg.get('bridge_type', "vision_lang_obs"))
-            compute_bridge_loss = kwargs.pop("compute_bridge_loss", model_config.bridge_cfg.get('compute_bridge_loss', False))
-            bridge_loss_type = kwargs.pop("bridge_loss_type", model_config.bridge_cfg.get('bridge_loss_type', 'ce'))
-            tune_all_llm_embedding = kwargs.pop("tune_all_llm_embedding", model_config.bridge_cfg.get('tune_all_llm_embedding', False))
-            use_image_type_embedding = kwargs.pop("use_image_type_embedding", model_config.bridge_cfg.get('use_image_type_embedding', False))
-            omit_image_type_embedding_for_goal = kwargs.pop("omit_image_type_embedding_for_goal", model_config.bridge_cfg.get('omit_image_type_embedding_for_goal', False))
-            action_only_one_obs = kwargs.pop("action_only_one_obs", model_config.bridge_cfg.get('action_only_one_obs', False))
-            noise_tau = kwargs.pop("noise_tau", model_config.bridge_cfg.get('noise_tau', 0))
-            reweight_noise = kwargs.pop("reweight_noise", model_config.bridge_cfg.get('reweight_noise', False))
-            groot_tokenizer_path = kwargs.pop("groot_tokenizer_path", model_config.bridge_cfg.get('groot_tokenizer_path', None))
-            action_loss_weight = kwargs.pop("action_loss_weight", model_config.bridge_cfg.get('action_loss_weight', 1.0))
-            bridge_loss_weight = kwargs.pop("bridge_loss_weight", model_config.bridge_cfg.get('bridge_loss_weight', 0.1))
-            unified_embodiment_id = kwargs.pop("unified_embodiment_id", model_config.bridge_cfg.get('unified_embodiment_id', None))
-            detach_vl_for_action = kwargs.pop("detach_vl_for_action", model_config.bridge_cfg.get('detach_vl_for_action', False))
-            # Optional override of the DINOv2 weight path inside the loaded GR00T tokenizer (deployment-time).
-            dinov2_path_override = kwargs.pop("dinov2_path_override", None)
-        except Exception as e:
-            print(kwargs)
-            raise e
-        print(f"Bridge type: {bridge_type}")
-        print(f"Compute bridge loss: {compute_bridge_loss}")
-        print(f"Bridge loss type: {bridge_loss_type}")
-        print(f"Tune all llm token embeddings: {tune_all_llm_embedding}")
-        print(f"Use image type embeddings: {use_image_type_embedding}")
-        print(f"Omit image type embeddings for goal images: {omit_image_type_embedding_for_goal}")
-        print(f"Action head using only one obs: {action_only_one_obs}")
-        print(f"Noise Tau: {noise_tau}")
-        print(f"Reweight Noise: {reweight_noise}")
-        print(f"GR00T tokenizer path: {groot_tokenizer_path}")
-        print(f"Action loss weight: {action_loss_weight}")
-        print(f"Bridge loss weight: {bridge_loss_weight}")
-        print(f"Unified embodiment ID: {unified_embodiment_id}")
-        print(f"Detach VL for action: {detach_vl_for_action}")
-        if dinov2_path_override is not None:
-            print(f"DINOv2 path override (for tokenizer): {dinov2_path_override}")
-
-        select_layer = kwargs.pop("select_layer", model_config.backbone_cfg.get('select_layer', None))
-
-        tune_bridge_visual = kwargs.pop("tune_bridge_visual", model_config.bridge_cfg['tune_bridge_visual'])
-        tune_image_type_embedding = kwargs.pop("tune_image_type_embedding", model_config.bridge_cfg.get('tune_image_type_embedding', True))
-        print(f"Tune bridge vision model: {tune_bridge_visual}")
-        print(f"Tune image type embeddings: {tune_image_type_embedding}")
-
-        use_vl_mask = kwargs.pop("use_vl_mask", model_config.action_head_cfg.get('use_vl_mask', True))
-        print(f"Use VL mask: {use_vl_mask}")
-
-        # use_correct_attn_mask: convert HF-style attention mask to SDPA-style inside action head
-        use_correct_attn_mask = kwargs.pop(
-            "use_correct_attn_mask", model_config.action_head_cfg.get('use_correct_attn_mask', True)
+    def from_pretrained(cls, pretrained_model_name_or_path: str, **kwargs):
+        """Load a complete inference checkpoint; never initialize missing weights."""
+        from gala.checkpoint import load_config, resolve_checkpoint
+        path = resolve_checkpoint(pretrained_model_name_or_path)
+        config = load_config(path)
+        bridge = config.bridge_cfg
+        # Older callers may still supply these inference-disabled options.
+        if kwargs.pop("compute_bridge_loss", False):
+            raise ValueError("Bridge supervision is not part of inference")
+        kwargs.pop("dinov2_path_override", None)
+        model, loading = super().from_pretrained(
+            path, local_model_path=path, config=config,
+            bridge_type=bridge.get("bridge_type", "vision_lang_obs"),
+            use_image_type_embedding=bridge.get("use_image_type_embedding", False),
+            action_only_one_obs=bridge.get("action_only_one_obs", False),
+            unified_embodiment_id=bridge.get("unified_embodiment_id"),
+            use_vl_mask=config.action_head_cfg.get("use_vl_mask", True),
+            use_correct_attn_mask=config.action_head_cfg.get("use_correct_attn_mask", True),
+            output_loading_info=True, **kwargs,
         )
-        print(f"Use correct attn mask format: {use_correct_attn_mask}")
-
-        # snapshot_download returns local cache path under ~/.cache/huggingface/hub/;
-        # falls back to treating the argument as a local path if it is not a valid hub repo id.
-        try:
-            local_model_path = snapshot_download(pretrained_model_name_or_path, repo_type="model")
-        except (HFValidationError, RepositoryNotFoundError):
-            print(
-                f"Model not found or avail in the huggingface hub. Loading from local path: {pretrained_model_name_or_path}"
-            )
-            local_model_path = pretrained_model_name_or_path
-
-        customized_kwargs = {
-            "tokenizer_len": tokenizer_len,
-            "bridge_type": bridge_type,
-            "compute_bridge_loss": compute_bridge_loss,
-            "select_layer": select_layer,
-            "bridge_loss_type": bridge_loss_type,
-            "use_image_type_embedding": use_image_type_embedding,
-            "use_vl_mask": use_vl_mask,
-            "use_correct_attn_mask": use_correct_attn_mask,
-            "action_only_one_obs": action_only_one_obs,
-            "noise_tau": noise_tau,
-            "omit_image_type_embedding_for_goal": omit_image_type_embedding_for_goal,
-            "reweight_noise": reweight_noise,
-            "groot_tokenizer_path": groot_tokenizer_path,
-            "action_loss_weight": action_loss_weight,
-            "bridge_loss_weight": bridge_loss_weight,
-            "unified_embodiment_id": unified_embodiment_id,
-            "detach_vl_for_action": detach_vl_for_action,
-        }
-
-        try:
-            import os
-
-            pretrained_model = super().from_pretrained(
-                local_model_path, local_model_path=local_model_path,
-                config=model_config,
-                **customized_kwargs,
-                **kwargs
-            )
-
-        except Exception:
-            raise  # Never silently evaluate randomly initialized weights.
-
-        pretrained_model.backbone.set_trainable_parameters(
-            tune_visual=tune_visual, tune_llm=tune_llm,
-            tune_bridge_embedding=tune_bridge_embedding,
-            tokenizer_len=tokenizer_len,
-            tune_all_llm_embedding=tune_all_llm_embedding,
-        )
-        pretrained_model.action_head.set_trainable_parameters(
-            tune_projector=tune_projector, tune_diffusion_model=tune_diffusion_model
-        )
-
-        if pretrained_model.use_bridge:
-            pretrained_model.set_trainable_parameters(
-                tune_bridge_visual=tune_bridge_visual,
-                tune_image_type_embedding=tune_image_type_embedding
-            )
-
-        pretrained_model.config.backbone_cfg['tune_visual'] = tune_visual
-        pretrained_model.config.backbone_cfg['tune_llm'] = tune_llm
-        pretrained_model.config.backbone_cfg['tune_bridge_embedding'] = tune_bridge_embedding
-        pretrained_model.config.action_head_cfg['tune_projector'] = tune_projector
-        pretrained_model.config.action_head_cfg['tune_diffusion_model'] = tune_diffusion_model
-        pretrained_model.config.action_head_cfg['use_vl_mask'] = use_vl_mask
-        pretrained_model.config.action_head_cfg['use_correct_attn_mask'] = use_correct_attn_mask
-        pretrained_model.config.bridge_cfg['tune_bridge_visual'] = tune_bridge_visual
-        pretrained_model.config.bridge_cfg['tokenizer_len'] = tokenizer_len
-        pretrained_model.config.bridge_cfg['bridge_type'] = bridge_type
-        pretrained_model.config.bridge_cfg['compute_bridge_loss'] = compute_bridge_loss
-        pretrained_model.config.bridge_cfg['bridge_loss_type'] = bridge_loss_type
-        pretrained_model.config.backbone_cfg['tune_all_llm_embedding'] = tune_all_llm_embedding
-        pretrained_model.config.bridge_cfg['use_image_type_embedding'] = use_image_type_embedding
-        pretrained_model.config.bridge_cfg['action_only_one_obs'] = action_only_one_obs
-        pretrained_model.config.bridge_cfg['noise_tau'] = noise_tau
-        pretrained_model.config.bridge_cfg['reweight_noise'] = reweight_noise
-        pretrained_model.config.bridge_cfg['omit_image_type_embedding_for_goal'] = omit_image_type_embedding_for_goal
-        pretrained_model.config.bridge_cfg['tune_image_type_embedding'] = tune_image_type_embedding
-        pretrained_model.config.bridge_cfg['groot_tokenizer_path'] = groot_tokenizer_path
-        pretrained_model.config.bridge_cfg['unified_embodiment_id'] = unified_embodiment_id
-        pretrained_model.config.bridge_cfg['bridge_loss_weight'] = bridge_loss_weight
-
-        return pretrained_model
+        unexpected = [key for key in loading.get("unexpected_keys", [])
+                      if not key.startswith("bridge_ce_predictors.")]
+        if loading.get("missing_keys") or loading.get("mismatched_keys") or loading.get("error_msgs") or unexpected:
+            raise RuntimeError(f"Incomplete or incompatible inference checkpoint: {loading}")
+        model.requires_grad_(False)
+        model.eval()
+        return model

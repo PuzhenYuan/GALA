@@ -21,9 +21,6 @@ import torch.nn as nn
 from transformers.feature_extraction_utils import BatchFeature
 
 from gala.data.embodiment_tags import EMBODIMENT_TAG_MAPPING
-from gala.model.bridge_config import (
-    resolve_dexlam_token_layout,
-)
 from gala.model.base import GALABase
 
 
@@ -34,54 +31,12 @@ class GALAModel(GALABase):
 
 
     def _init_bridge_modules_tokenizer_mode(self):
-        print("Using DexLAM black-box encoder for bridge supervision")
-        print(f"Bridge type: {self.bridge_type}")
         self._needs_obs_embeds = self.bridge_type in ["vision_lang_obs", "vision_lang_obs_e2e"]
         self._needs_vision_lang_features = self.bridge_type in ["vision_lang", "vision_lang_obs", "vision_lang_obs_e2e"]
-
         if self._needs_obs_embeds:
             from gala.model.backbone.eagle_backbone import qwen_vl_visual_module
             qwen_vl_visual_module(self.backbone.eagle_model)
-
-        self.groot_tokenizer = nn.Identity()
-        self.dexlam_encoder = None
-        self._last_dexlam_token_mask = None
-        if "num_bridge_tokens" not in self.config.bridge_cfg:
-            raise ValueError("num_bridge_tokens must be specified in bridge_cfg")
         self.num_bridge_tokens = self.config.bridge_cfg["num_bridge_tokens"]
-        self.dexlam_token_layout = resolve_dexlam_token_layout(self.config.bridge_cfg)
-
-        hidden_size = self.backbone.eagle_model.config.hidden_size
-        tokenizer_cfg = self.config.bridge_cfg.get("tokenizer_cfg", {})
-        self.num_codebooks = 1
-        codebook_size = tokenizer_cfg.get("codebook_size", 128)
-        self.dexlam_supervised_tokens = int(tokenizer_cfg.get("dexlam_supervised_tokens", 0))
-        self.bridge_ce_predictors = nn.ModuleList(
-            [
-                nn.Sequential(
-                    nn.LayerNorm(hidden_size),
-                    nn.Linear(hidden_size, hidden_size),
-                    nn.GELU(),
-                    nn.Linear(hidden_size, codebook_size),
-                )
-            ]
-        )
-        self.ce_loss_weights = [1.0]
-        self.label_smoothing = tokenizer_cfg.get("label_smoothing", 0.0)
-        print(
-            f"DexLAM CE loss config: num_bridge_tokens={self.num_bridge_tokens}, "
-            f"token_layout={self.dexlam_token_layout}, "
-            f"num_codebooks={self.num_codebooks}, codebook_size={codebook_size}, "
-            f"label_smoothing={self.label_smoothing}"
-        )
-
-
-    def set_trainable_parameters(self, tune_bridge_visual: bool, tune_image_type_embedding: bool):
-        self.tune_bridge_visual = tune_bridge_visual
-        self.tune_image_type_embedding = tune_image_type_embedding
-        self.bridge_ce_predictors.requires_grad_(True)
-        if self.use_image_type_embedding:
-            self.image_type_embedding.requires_grad_(self.tune_image_type_embedding)
 
     def _pack_cached_obs_embeds(
         self, obs_embeds: torch.Tensor, image_token_counts: torch.Tensor

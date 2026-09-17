@@ -11,7 +11,7 @@ def resolve_checkpoint(source: str) -> str:
     if source.startswith('hf://'):
         source = source[5:]
     if 'REPLACE_WITH' in source:
-        raise ValueError('Weights are not released yet. Set MODEL_PATH to a local checkpoint or the future Hugging Face repository ID.')
+        raise ValueError('Set MODEL_PATH to a local checkpoint or ypz21/GALA_robocasa_gr1.')
     from huggingface_hub import snapshot_download
     return snapshot_download(source, revision=os.environ.get('GALA_MODEL_REVISION'))
 
@@ -28,6 +28,4 @@ def load_config(model_path: str):
     if candidate.is_dir():
         backbone = str(candidate.resolve())
     data['backbone_cfg']['eagle_path'] = backbone
-    data['bridge_cfg']['compute_bridge_loss'] = False
-    data['bridge_cfg']['groot_tokenizer_path'] = None
     return GALAConfig(**data)

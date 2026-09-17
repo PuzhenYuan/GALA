@@ -250,10 +250,9 @@ class FlowmatchingActionHeadGALA(nn.Module):
             self.position_embedding = nn.Embedding(config.max_seq_len, self.input_embedding_dim)
             nn.init.normal_(self.position_embedding.weight, mean=0.0, std=0.02)
 
-        self.beta_dist = Beta(config.noise_beta_alpha, config.noise_beta_beta)
         self.num_timestep_buckets = config.num_timestep_buckets
         self.config = config
-        self.set_trainable_parameters(config.tune_projector, config.tune_diffusion_model)
+        self.set_trainable_parameters(False, False)
 
         # Unified embodiment ID (for parameter sharing across different embodiments)
         # Dynamically set by parent model (e.g., GALABase)
