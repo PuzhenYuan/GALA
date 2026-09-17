@@ -2,7 +2,7 @@
 
 [![GALA teaser](figure/Teaser.png)](figure/Teaser.pdf)
 
-official repository for GALA: Geometry-Aware Latent Action Modeling for Vision-Language-Action Model Pretraining across Embodiments
+Official repository for GALA: Geometry-Aware Latent Action Modeling for Vision-Language-Action Model Pretraining across Embodiments
 
 ## Setup
 
