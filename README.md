@@ -1,8 +1,8 @@
 # GALA
 
-GALA inference and RoboCasa GR1 evaluation using **checkpoint_robocasa_gr1**.
-Weights: [ypz21/GALA_robocasa_gr1](https://huggingface.co/ypz21/GALA_robocasa_gr1).
-This release includes inference code and weights only; training is not included.
+[![GALA teaser](figure/Teaser.png)](figure/Teaser.pdf)
+
+official repository for GALA: Geometry-Aware Latent Action Modeling for Vision-Language-Action Model Pretraining across Embodiments
 
 ## Setup
 
