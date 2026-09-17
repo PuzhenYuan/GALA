@@ -1,6 +1,6 @@
 # GALA
 
-GALA inference and RoboCasa GR1 evaluation using the **50,000-step checkpoint**.
+GALA inference and RoboCasa GR1 evaluation using **checkpoint_robocasa_gr1**.
 Weights: [ypz21/GALA_robocasa_gr1](https://huggingface.co/ypz21/GALA_robocasa_gr1).
 This release includes inference code and weights only; training is not included.
 
@@ -20,7 +20,7 @@ bash examples/environment_setup.sh
 
 ```bash
 hf auth login  # Use an account with access to this private model repository.
-hf download ypz21/GALA_robocasa_gr1 --local-dir checkpoints/checkpoint-50000
+hf download ypz21/GALA_robocasa_gr1 --local-dir checkpoints/checkpoint_robocasa_gr1
 hf download Qwen/Qwen2.5-VL-3B-Instruct --local-dir checkpoints/Qwen2.5-VL-3B-Instruct
 ```
 
@@ -40,8 +40,8 @@ N_ENVS=1 \
 N_EPISODES=50 \
 EVAL_TAG=_dexlam_all_parallel \
 DATA_CONFIG=fourier_gr1_arms_waist_gausNorm_crop_cam_ego_joints_only \
-bash examples/run_eval_parallel.sh checkpoints/checkpoint-50000 id \
-2>&1 | tee outputs/eval_gala_50k_id.log
+bash examples/run_eval_parallel.sh checkpoints/checkpoint_robocasa_gr1 id \
+2>&1 | tee outputs/eval_gala_robocasa_gr1_id.log
 ```
 
 This runs 24 ID tasks with 50 episodes each, using 8 GPUs and 3 workers per GPU. Results and videos are saved under `outputs/evaluation_sim_id_1envs_dexlam_all_parallel/`.
