@@ -1,4 +1,4 @@
-# GALA
+# GALA: Geometry-Aware Latent Action Modeling for Vision-Language-Action Model Pretraining across Embodiments
 
 [![GALA teaser](figure/Teaser.png)](figure/Teaser.pdf)
 
@@ -38,13 +38,13 @@ PROCS_PER_GPU=3 \
 PORT_BASE=5810 \
 N_ENVS=1 \
 N_EPISODES=50 \
-EVAL_TAG=_dexlam_all_parallel \
+EVAL_TAG=_gala_parallel \
 DATA_CONFIG=fourier_gr1_arms_waist_gausNorm_crop_cam_ego_joints_only \
 bash examples/run_eval_parallel.sh checkpoints/checkpoint_robocasa_gr1 id \
 2>&1 | tee outputs/eval_gala_robocasa_gr1_id.log
 ```
 
-This runs 24 ID tasks with 50 episodes each, using 8 GPUs and 3 workers per GPU. Results and videos are saved under `outputs/evaluation_sim_id_1envs_dexlam_all_parallel/`.
+This runs 24 ID tasks with 50 episodes each, using 8 GPUs and 3 workers per GPU. Results and videos are saved under `outputs/evaluation_sim_id_1envs_gala_parallel/`.
 
 For a quick check, use `GPU_IDS=0`, `PROCS_PER_GPU=1`, `N_EPISODES=1`, `EVAL_MAX_TASKS=1`, and `EVAL_TAG=_smoke`. The checkpoint argument also accepts `ypz21/GALA_robocasa_gr1` directly. No training data or latent-encoder weights are required.
 

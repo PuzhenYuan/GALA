@@ -10,7 +10,7 @@
 #   NUM_EVAL_PROCS    Number of parallel eval workers. Default: number of GPU_IDS * PROCS_PER_GPU.
 #   GPU_IDS           Comma-separated or space-separated GPU ids. Default: 0,1,2,3,4,5,6,7.
 #   PORT_BASE         First inference server port. Default: 5810.
-#   EVAL_TAG          Base tag. Workers write under `${base_eval_dir}/p{rank}of{NUM_EVAL_PROCS}`.
+#   EVAL_TAG          Base tag (default: _gala_parallel). Workers write under `${base_eval_dir}/p{rank}of{NUM_EVAL_PROCS}`.
 #   N_ENVS            Passed through to run_eval.sh.
 #   N_EPISODES        Passed through to run_eval.sh.
 #   N_ACTION_STEPS    Actions executed before requesting a new action chunk. Default: 16.
@@ -49,7 +49,7 @@ read -r -a GPU_ID_LIST <<< "${GPU_IDS_RAW}"
 PROCS_PER_GPU="${PROCS_PER_GPU:-3}"
 NUM_EVAL_PROCS="${NUM_EVAL_PROCS:-$((${#GPU_ID_LIST[@]} * PROCS_PER_GPU))}"
 PORT_BASE="${PORT_BASE:-5810}"
-BASE_EVAL_TAG="${EVAL_TAG:-_parallel}"
+BASE_EVAL_TAG="${EVAL_TAG:-_gala_parallel}"
 EVAL_PARALLEL_DRY_RUN="${EVAL_PARALLEL_DRY_RUN:-0}"
 RESUME_EVAL="${RESUME_EVAL:-0}"
 N_ACTION_STEPS="${N_ACTION_STEPS:-16}"
@@ -88,8 +88,6 @@ if [[ ! "${EVAL_SAMPLE_STEP}" =~ ^[1-9][0-9]*$ ]]; then
   exit 1
 fi
 
-mkdir -p "${PROJECT_ROOT}/dev/log"
-
 case "$EVAL_TYPE" in
   id) BASE_EVAL_SUBDIR="evaluation_sim_id_${N_ENVS:-1}envs${OUTPUT_EVAL_TAG}" ;;
   *)
@@ -99,7 +97,6 @@ esac
 BASE_EVAL_DIR="${OUTPUT_ROOT:-${PROJECT_ROOT}/outputs}/${BASE_EVAL_SUBDIR}"
 AGG_CLIENT_LOG="${BASE_EVAL_DIR}/test_robocasa_gr1_client_merged.log"
 AGG_RESULTS_JSON="${BASE_EVAL_DIR}/results.json"
-TASK_ASSIGNMENT_LOG="${BASE_EVAL_DIR}/task_assignment.log"
 
 total_tasks_by_type() {
   case "$1" in
@@ -142,14 +139,13 @@ for ((rank = 0; rank < NUM_EVAL_PROCS; rank++)); do
   port="$((PORT_BASE + rank))"
   shard_name="p${rank}of${NUM_EVAL_PROCS}"
   shard_tag="${OUTPUT_EVAL_TAG}/${shard_name}"
-  log_path="${PROJECT_ROOT}/dev/log/eval_parallel_${EVAL_TYPE}${OUTPUT_EVAL_TAG}_${shard_name}.log"
 
   assigned_tasks=()
   for ((task_idx = rank; task_idx < TOTAL_TASKS; task_idx += NUM_EVAL_PROCS)); do
     assigned_tasks+=("${task_idx}")
   done
 
-  echo "[worker ${rank}/${NUM_EVAL_PROCS}] gpu=${gpu_id} gpu_slot=$((rank / ${#GPU_ID_LIST[@]})) port=${port} dir=${BASE_EVAL_DIR}/${shard_name} task_indices=${assigned_tasks[*]:-(none)} log=${log_path}"
+  echo "[worker ${rank}/${NUM_EVAL_PROCS}] gpu=${gpu_id} gpu_slot=$((rank / ${#GPU_ID_LIST[@]})) port=${port} dir=${BASE_EVAL_DIR}/${shard_name} task_indices=${assigned_tasks[*]:-(none)}"
   shard_client_log="${BASE_EVAL_DIR}/${shard_name}/test_robocasa_gr1_client.log"
   if [[ "${RESUME_EVAL}" == "1" && -f "${shard_client_log}" ]]; then
     completed_rates="$(grep -c -i '^Success rate:' "${shard_client_log}" || true)"
@@ -175,7 +171,7 @@ for ((rank = 0; rank < NUM_EVAL_PROCS; rank++)); do
     export EVAL_SAMPLE_STEP
     export INFER_SAMPLE_SHIFT
     bash examples/run_eval.sh "${MODEL_PATH}" "${EVAL_TYPE}"
-  ) > "${log_path}" 2>&1 &
+  ) > /dev/null &
   pids+=("$!")
 done
 
@@ -192,20 +188,11 @@ for pid in "${pids[@]}"; do
 done
 
 if (( status != 0 )); then
-  echo "One or more eval workers failed. Check dev/log/eval_parallel_${EVAL_TYPE}${OUTPUT_EVAL_TAG}_p*of${NUM_EVAL_PROCS}.log" >&2
+  echo "One or more eval workers failed. Check stderr and the client/server logs under ${BASE_EVAL_DIR}/p*of${NUM_EVAL_PROCS}/" >&2
   exit "${status}"
 fi
 
 echo "All eval workers completed."
-
-: > "${TASK_ASSIGNMENT_LOG}"
-for ((rank = 0; rank < NUM_EVAL_PROCS; rank++)); do
-  shard_name="p${rank}of${NUM_EVAL_PROCS}"
-  shard_worker_log="${PROJECT_ROOT}/dev/log/eval_parallel_${EVAL_TYPE}${OUTPUT_EVAL_TAG}_${shard_name}.log"
-  if [[ -f "${shard_worker_log}" ]]; then
-    grep "TASK_ASSIGNMENT:" "${shard_worker_log}" >> "${TASK_ASSIGNMENT_LOG}" || true
-  fi
-done
 
 : > "${AGG_CLIENT_LOG}"
 for ((rank = 0; rank < NUM_EVAL_PROCS; rank++)); do
@@ -223,6 +210,5 @@ for ((rank = 0; rank < NUM_EVAL_PROCS; rank++)); do
 done
 
 "${PYTHON_BIN:-python3}" scripts/compute_success_rate.py -i "${AGG_CLIENT_LOG}" -o "${AGG_RESULTS_JSON}"
-echo "Task assignment log: ${TASK_ASSIGNMENT_LOG}"
 echo "Merged client log: ${AGG_CLIENT_LOG}"
 echo "Aggregated results: ${AGG_RESULTS_JSON}"
