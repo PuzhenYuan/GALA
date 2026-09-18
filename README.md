@@ -50,6 +50,6 @@ This runs 24 ID tasks with 50 episodes each, using 8 GPUs and 3 workers per GPU.
 
 For a quick check, use `GPU_IDS=0`, `PROCS_PER_GPU=1`, `N_EPISODES=1`, `EVAL_MAX_TASKS=1`, and `EVAL_TAG=_smoke`. The checkpoint argument also accepts `ypz21/GALA_robocasa_gr1` directly. No training data or latent-encoder weights are required.
 
-## Attribution
+## Acknowledgement
 
-Based on NVIDIA GR00T, Qwen2.5-VL, RoboCasa, and robosuite. See `LICENSE` and `NOTICE.txt`; upstream models and assets retain their respective licenses.
+GALA is built on top of [NVIDIA Isaac GR00T N1.5](https://github.com/NVIDIA/Isaac-GR00T/tree/n1.5-release) and [UniT](https://github.com/xpeng-robotics/UniT/). We thank the authors for their efforts!
