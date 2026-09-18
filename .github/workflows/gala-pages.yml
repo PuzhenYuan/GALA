@@ -1,0 +1,44 @@
+name: Deploy GALA project page
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'website/**'
+      - '.github/workflows/gala-pages.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: gala-pages
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assemble the project website
+        env:
+          MEDIA_COMMIT: 6d832d928f2873668954d4534abaa308eda06562
+        run: |
+          mkdir -p _site media-source
+          curl --fail --location --retry 3 "https://codeload.github.com/anonymity35/GALA/tar.gz/${MEDIA_COMMIT}" -o media.tar.gz
+          tar -xzf media.tar.gz --strip-components=1 -C media-source
+          cp -R media-source/assets _site/assets
+          cp website/index.html website/style.css website/script.js _site/
+          touch _site/.nojekyll
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
