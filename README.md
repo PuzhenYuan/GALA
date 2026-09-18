@@ -4,6 +4,8 @@
 
 Official repository for GALA: Geometry-Aware Latent Action Modeling for Vision-Language-Action Model Pretraining across Embodiments
 
+[![Project Page](https://img.shields.io/badge/Project-Page-Blue)](https://puzhenyuan.github.io/GALA-website/) [![Hugging Face](https://img.shields.io/badge/Hugging%20Face-Checkpoint-yellow)](https://huggingface.co/ypz21/GALA_robocasa_gr1)
+
 ## Setup
 
 Use Linux, Python 3.10, an NVIDIA GPU with CUDA 12.4 support, a CUDA build toolchain, and EGL for headless rendering.
