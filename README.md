@@ -4,7 +4,7 @@
 
 Official repository for GALA: Geometry-Aware Latent Action Modeling for Vision-Language-Action Model Pretraining across Embodiments
 
-[![Project Page](https://img.shields.io/badge/Project-Page-Blue)](https://puzhenyuan.github.io/GALA-website/) [![Hugging Face](https://img.shields.io/badge/Hugging%20Face-Checkpoint-yellow)](https://huggingface.co/ypz21/GALA_robocasa_gr1)
+[![Project Page](https://img.shields.io/badge/Project-Page-Blue)](https://puzhenyuan.github.io/GALA-website/) [![arXiv](https://img.shields.io/badge/arXiv-2609.21948-b31b1b)](https://arxiv.org/abs/2609.21948v1) [![Hugging Face](https://img.shields.io/badge/Hugging%20Face-Checkpoint-yellow)](https://huggingface.co/ypz21/GALA_robocasa_gr1)
 
 ## Setup
 
@@ -50,6 +50,16 @@ This runs 24 ID tasks with 50 episodes each, using 8 GPUs and 3 workers per GPU.
 
 For a quick check, use `GPU_IDS=0`, `PROCS_PER_GPU=1`, `N_EPISODES=1`, `EVAL_MAX_TASKS=1`, and `EVAL_TAG=_smoke`. The checkpoint argument also accepts `ypz21/GALA_robocasa_gr1` directly. No training data or latent-encoder weights are required.
 
-## Acknowledgement
+## Citation
 
-GALA is built on top of [NVIDIA Isaac GR00T N1.5](https://github.com/NVIDIA/Isaac-GR00T/tree/n1.5-release) and [UniT](https://github.com/xpeng-robotics/UniT/). We thank the authors for their efforts!
+```bibtex
+@misc{liu2026galageometryawarelatentaction,
+  title={GALA: Geometry-Aware Latent Action Modeling for Vision-Language-Action Model Pretraining across Embodiments},
+  author={Yichen Liu and Puzhen Yuan and Xiang Zhu and Yanjiang Guo and Jianyu Chen},
+  year={2026},
+  eprint={2609.21948},
+  archivePrefix={arXiv},
+  primaryClass={cs.RO},
+  url={https://arxiv.org/abs/2609.21948},
+}
+```
