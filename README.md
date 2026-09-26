@@ -53,13 +53,10 @@ For a quick check, use `GPU_IDS=0`, `PROCS_PER_GPU=1`, `N_EPISODES=1`, `EVAL_MAX
 ## Citation
 
 ```bibtex
-@misc{liu2026galageometryawarelatentaction,
+@article{liu2026gala,
   title={GALA: Geometry-Aware Latent Action Modeling for Vision-Language-Action Model Pretraining across Embodiments},
-  author={Yichen Liu and Puzhen Yuan and Xiang Zhu and Yanjiang Guo and Jianyu Chen},
-  year={2026},
-  eprint={2609.21948},
-  archivePrefix={arXiv},
-  primaryClass={cs.RO},
-  url={https://arxiv.org/abs/2609.21948},
+  author={Liu, Yichen and Yuan, Puzhen and Zhu, Xiang and Guo, Yanjiang and Chen, Jianyu},
+  journal={arXiv preprint arXiv:2609.21948},
+  year={2026}
 }
 ```
